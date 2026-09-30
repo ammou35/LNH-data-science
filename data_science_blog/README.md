@@ -8,7 +8,7 @@ rsync -a --exclude='.git' /tmp/blog-template/ data_science_blog/
 ```
 
 
-Ci-dessous suit Le README originel du modèle d'article de blog.
+Ci-dessous suit le README originel du modèle d'article de blog.
 
 
 # IFT6758 Blog Post Template

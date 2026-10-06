@@ -7,6 +7,8 @@ git clone --depth 1 git@github.com:milarobotlearningcourse/data_science_blog.git
 rsync -a --exclude='.git' /tmp/blog-template/ data_science_blog/
 ```
 
+L'article de blog à compléter pour le projet est ici: `data_science_blog/_posts/2026-09-30-milestone-1.md`. Il contient une ébauche des questions auquelles il faut répondre, avec un rappel de la question.
+
 
 Ci-dessous suit le README originel du modèle d'article de blog.
 

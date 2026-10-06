@@ -50,79 +50,56 @@ MAX_REGULAR_SEASON_GAMES = 1500
 
 
 # --------------------------------------------------------------------------- ids
+# Returns game id for a regular season game given the season and game number
 def regular_season_game_id(season: int, number: int) -> str:
     """ID of regular-season game ``number`` (1-based) of the season starting in ``season``."""
     return f"{season}02{number:04d}"
 
-
+# Returns game id for a playoff game given the season, round, matchup, and game number
 def playoff_game_id(season: int, round_: int, matchup: int, game: int) -> str:
     """ID of a playoff game, e.g. ``playoff_game_id(2022, 4, 1, 1) == '2022030411'``."""
     return f"{season}030{round_}{matchup}{game}"
 
 
-# ------------------------------------------------------------------------- cache
+# Returns a Path object and creates one if it does not exist.
 def get_data_dir(data_dir: str | os.PathLike | None = None) -> Path:
     """Cache root: explicit argument > ``$NHL_DATA_DIR`` > ``./data/raw``."""
     path = Path(data_dir or os.environ.get(DATA_DIR_ENV, DEFAULT_DATA_DIR))
     path.mkdir(parents=True, exist_ok=True)
     return path
 
-
+# Creates a path pointer to the cache file for a given game_id and data_dir
 def _cache_path(game_id: str, data_dir: str | os.PathLike | None) -> Path:
     return get_data_dir(data_dir) / game_id[:4] / f"{game_id}.json"
 
 
 # ------------------------------------------------------------------ one game
+# Fetches a single game from the NHL API, caches it, and returns the raw JSON data
 def get_game(
     game_id: str,
     data_dir: str | os.PathLike | None = None,
     session: requests.Session | None = None,
     delay: float = 0.5,
-    retries: int = 3,
 ) -> dict | None:
-    """Return the raw play-by-play dict for one game.
-
-    Reads the local cache first and only downloads on a miss (then saves the
-    raw JSON). Returns ``None`` if the API says the game does not exist (404);
-    that is normal, e.g. a playoff series that ended before game 7. Transient
-    failures (429, 5xx, timeouts) are retried with back-off and then raised;
-    any other HTTP error is raised immediately.
-
-    Args:
-        game_id: 10-digit game ID, see the module docstring.
-        data_dir: cache root; defaults to ``$NHL_DATA_DIR`` or ``./data/raw``.
-        session: optional ``requests.Session`` to reuse connections.
-        delay: seconds to sleep after each *network* request (not on cache hits).
-        retries: number of attempts for transient failures (429, 5xx, timeouts).
-    """
     path = _cache_path(game_id, data_dir)
+    # if path exists, load the cached JSON and return it
     if path.exists():
         return json.loads(path.read_text())
 
-    http = session or requests
-    url = PBP_URL.format(game_id=game_id)
-    for attempt in range(1, retries + 1):
-        try:
-            resp = http.get(url, timeout=30)
-        except (requests.ConnectionError, requests.Timeout):
-            if attempt == retries:
-                raise
-            time.sleep(delay + 2**attempt)
-            continue
-        time.sleep(delay)
-        if resp.status_code == 404:
-            return None
-        if resp.status_code == 429 or resp.status_code >= 500:  # transient: back off, retry
-            if attempt == retries:
-                resp.raise_for_status()
-            time.sleep(2**attempt)
-            continue
-        resp.raise_for_status()  # any other 4xx is a real error, don't retry
-        data = resp.json()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(data))
-        return data
-    raise RuntimeError(f"unreachable: retries must be >= 1 (got {retries})")
+    # otherwise, request the game from the NHL API
+    resp = (session or requests).get(PBP_URL.format(game_id=game_id), timeout=30)
+    time.sleep(delay)  # wait a bit to avoid hammering the NHL servers
+    # if the game does not exist, return None
+    if resp.status_code == 404:
+        return None
+    # if the request failed for any other reason, raise an exception
+    resp.raise_for_status()
+
+    # if the request succeeded, parse the JSON, save it to the cache, and return it
+    data = resp.json()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data))
+    return data
 
 
 # ------------------------------------------------------------------- one season
@@ -133,11 +110,9 @@ def download_regular_season(
     delay: float = 0.5,
     max_misses: int = 5,
 ) -> list[dict]:
-    """Download games 1, 2, 3, ... until ``max_misses`` consecutive 404s.
-
-    Season lengths vary (lockout/COVID/expansion), so we do not hard-code them.
-    """
+    # download games 1, 2, 3, ... until ``max_misses`` consecutive 404s
     games, misses = [], 0
+    # tdqm progress bar for the number of games downloaded successfully
     with tqdm(desc=f"{season} regular", unit="game") as bar:
         for number in range(1, MAX_REGULAR_SEASON_GAMES + 1):
             data = get_game(regular_season_game_id(season, number), data_dir, session, delay)
@@ -158,11 +133,13 @@ def download_playoffs(
     session: requests.Session | None = None,
     delay: float = 0.5,
 ) -> list[dict]:
-    """Download every playoff series, skipping to the next series at the first missing game."""
+    # download every playoff series, skipping to the next series at the first missing game
     games = []
     with tqdm(desc=f"{season} playoffs", unit="game") as bar:
         for round_, n_matchups in MATCHUPS_PER_ROUND.items():
+            # n_matchups is 8, 4, 2, 1 for rounds 1, 2, 3, 4
             for matchup in range(1, n_matchups + 1):
+                # max 7 games per series
                 for game in range(1, MAX_PLAYOFF_GAMES_PER_SERIES + 1):
                     gid = playoff_game_id(season, round_, matchup, game)
                     data = get_game(gid, data_dir, session, delay)
@@ -186,30 +163,31 @@ def download_season(
         PLAYOFFS: download_playoffs(season, data_dir, session, delay),
     }
 
+#----------------------------------------------------------- sequential
+# def download_seasons(first=2016, last=2023, data_dir=None, delay=0.5) -> None:
+#     # Download 2016-17 ... 2023-24 by default into the local cache.
+#     session = requests.Session()
+#     for season in range(first, last + 1):
+#         download_season(season, data_dir, session, delay)
 
-def download_seasons(
-    first: int = 2016,
-    last: int = 2023,
-    data_dir: str | os.PathLike | None = None,
-    delay: float = 0.5,
-) -> dict[int, dict[str, list[dict]]]:
-    """Download 2016-17 ... 2023-24 by default (``first``/``last`` are start years)."""
-    session = requests.Session()
-    return {s: download_season(s, data_dir, session, delay) for s in range(first, last + 1)}
-
+#----------------------------------------------------------- parallel
+from concurrent.futures import ThreadPoolExecutor
+# Download multiple seasons in parallel using threads
+def download_seasons(first=2016, last=2023, data_dir=None, delay=0.3, workers=4) -> None:
+    # Download 2016-17 ... 2023-24 by default into the local cache.
+    seasons = range(first, last + 1)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        # session=None: each season creates its own requests.Session
+        list(pool.map(lambda s: download_season(s, data_dir, None, delay), seasons))
 
 # ------------------------------------------------------------ offline loading
+# Useful for task 3
 def load_season(
     season: int,
     game_type: str = REGULAR,
     data_dir: str | os.PathLike | None = None,
 ) -> list[dict]:
-    """Load already-downloaded games from disk only (never touches the network).
-
-    Args:
-        season: start year, e.g. ``2016`` for 2016-17.
-        game_type: ``"regular"`` or ``"playoffs"``.
-    """
+    # Load already-downloaded games from disk only (never touches the network)
     if game_type not in GAME_TYPE_CODE:
         raise ValueError(f"game_type must be one of {sorted(GAME_TYPE_CODE)}, got {game_type!r}")
     folder = get_data_dir(data_dir) / str(season)
@@ -217,8 +195,8 @@ def load_season(
     return [json.loads(f.read_text()) for f in files]
 
 
-def main() -> None:
-    """Command line entry point: ``uv run download-nhl [--first 2016] [--last 2023]``."""
+def main():
+    # Command line entry point: ``uv run download-nhl [--first 2016] [--last 2023]``.
     import argparse
 
     parser = argparse.ArgumentParser(description="Download NHL play-by-play data into the local cache.")
@@ -228,3 +206,37 @@ def main() -> None:
     parser.add_argument("--delay", type=float, default=0.5, help="seconds between requests")
     args = parser.parse_args()
     download_seasons(args.first, args.last, args.data_dir, args.delay)
+
+
+# # step 1: fetch one game and look at it
+# import requests
+
+# url = "https://api-web.nhle.com/v1/gamecenter/2022030311/play-by-play"
+# resp = requests.get(url, timeout=30)
+# print(resp.status_code)
+# data = resp.json()
+# print(data.keys())
+
+# # step 2: save it to disk
+# import json
+# from pathlib import Path
+
+# path = Path("data/raw/2022030311.json")
+# path.parent.mkdir(parents=True, exist_ok=True)
+# path.write_text(json.dumps(data))
+
+
+# # step 3: add the cache check, which is the heart of this task
+# def get_game(game_id):
+#     path = Path(f"data/raw/{game_id}.json")
+#     if path.exists():
+#         return json.loads(path.read_text())
+#     url = f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play"
+#     resp = requests.get(url, timeout=30)
+#     if resp.status_code == 404:
+#         return None
+#     resp.raise_for_status()
+#     data = resp.json()
+#     path.parent.mkdir(parents=True, exist_ok=True)
+#     path.write_text(json.dumps(data))
+#     return data

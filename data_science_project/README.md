@@ -1,16 +1,3 @@
-# LNH-data-science
-
-Ceci est le repo remote pour le projet du cours IFT6758A Automne 2026 à l'Université de Montréal du groupe 7 composé de David Qi, Nathan Osman et Amira Mouamine.
-
-Le dossier data_science_project contient la base du code reproductible de notre groupe, tandis que le dossier data_science_blog contient le code source du blog.
-
-
-
-# IFT6758 Project: NHL play-by-play analysis
-
-Codebase for the IFT6758 project (Milestone 1: data acquisition, tidy data, visualisations).
-The blog post lives in a **separate repo** (`../blog`); you submit a ZIP of each.
-
 ## Quick start
 
     uv sync                      # create .venv and install everything
@@ -36,21 +23,6 @@ Raw JSON goes to `$NHL_DATA_DIR` (default `data/raw/`) and is git-ignored. **Nev
     tests/                       pytest suite
 
 ---
-
-This template provides you with a skeleton of a Python package, `ift6758`, that is installed into your project environment.
-You are encouraged to leverage this package as a skeleton and add all of your reusable code, functions, etc. into relevant modules.
-This makes collaboration much easier as the package could be seen as a "single source of truth" to pull data, create visualizations, etc. rather than relying on a jumble of notebooks.
-You can still run into trouble if branches are not frequently merged as work progresses, so try to not let your branches diverge too much!
-
-Also included in this repo is an image of the NHL ice rink that you can use in your plots.
-It has the correct location of lines, faceoff dots, and length/width ratio as the real NHL rink.
-Note that the rink is 200 feet long and 85 feet wide, with the goal line 11 feet from the nearest edge of the rink, and the blue line 75 feet from the nearest edge of the rink.
-
-<p align="center">
-<img src="./figures/nhl_rink.png" alt="NHL Rink is 200ft x 85ft." width="400"/>
-<p>
-
-The image can be found in [`./figures/nhl_rink.png`](./figures/nhl_rink.png).
 
 ## Setup
 
@@ -81,6 +53,7 @@ Add or remove packages with `uv` rather than `pip`, so that `pyproject.toml` and
 
 Commit both `pyproject.toml` and `uv.lock`; teammates then just run `uv sync` to get the exact same environment.
 
+### THE BELOW SHOULD BE UPDATED IF NEEDED
 ## LLM setup
 
 All LLM tasks must use [Qwen3-4B-Instruct-2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507).

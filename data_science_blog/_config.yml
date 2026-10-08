@@ -1,7 +1,7 @@
 # Setup
 title:               'Projet du cours IFT6758A'
 tagline:             'Blog du projet du cours IFT6758A Automne 2026'
-description:         "Blog du projet du cours IFT6758A de la session d'Automne 2026 à l'Université de Montréal du groupe 7 composé de David Qi, Nathan Osman et Amira Mouamine."
+description:         "Blog du projet du cours IFT6758A de la session d'Automne 2026 à l'Université de Montréal du groupe 7 composé de David Qi, Nathan Osman, Amira Mouamine et Jérémie Dion-Latour."
 url:                 ''
 baseurl:             ''
 paginate:            5
@@ -9,9 +9,7 @@ permalink:           pretty
 
 # About/contact
 author:
-  name:              Mark Otto
-  url:               https://twitter.com/mdo
-  email:             markdotto@gmail.com
+  name:              Groupe 7 — David Qi, Nathan Osman, Amira Mouamine et Jérémie Dion-Latour
 
 # Gems
 plugins:

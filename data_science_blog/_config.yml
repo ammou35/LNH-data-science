@@ -1,0 +1,26 @@
+# Setup
+title:               'Projet du cours IFT6758A'
+tagline:             'Blog du projet du cours IFT6758A Automne 2026'
+description:         "Blog du projet du cours IFT6758A de la session d'Automne 2026 à l'Université de Montréal du groupe 7 composé de David Qi, Nathan Osman, Amira Mouamine et Jérémie Dion-Latour."
+url:                 ''
+baseurl:             ''
+paginate:            5
+permalink:           pretty
+
+# About/contact
+author:
+  name:              Groupe 7 — David Qi, Nathan Osman, Amira Mouamine et Jérémie Dion-Latour
+
+# Gems
+plugins:
+  - jekyll-paginate
+
+# Repo files that should not be published with the site
+exclude:
+  - README.md
+  - LICENSE.md
+  - plotly_html.ipynb
+
+# Custom vars
+version:             1.1.0
+google_analytics_id: #UA-XXXX-Y

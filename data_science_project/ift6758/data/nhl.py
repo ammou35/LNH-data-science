@@ -36,7 +36,7 @@ from tqdm import tqdm
 
 PBP_URL = "https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play"
 DATA_DIR_ENV = "NHL_DATA_DIR"
-DEFAULT_DATA_DIR = "data/raw"
+DEFAULT_DATA_DIR = Path(__file__).resolve().parent / "raw"
 
 REGULAR = "regular"
 PLAYOFFS = "playoffs"

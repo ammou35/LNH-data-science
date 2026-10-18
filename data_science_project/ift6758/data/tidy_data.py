@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 import pandas as pd
 
+from ift6758.data import load_season
+
 def game_to_pandas(game: dict,
                    export: bool | None = None):
     """Extraire la liste d'événements d'une seule partie en dataframe pandas."""

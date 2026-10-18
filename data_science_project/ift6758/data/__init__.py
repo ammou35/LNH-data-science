@@ -13,6 +13,8 @@ from .nhl import (
     playoff_game_id,
     regular_season_game_id,
 )
+
+from .tidy_data import game_to_pandas
 from .question_1 import get_player_stats
 
 __all__ = [

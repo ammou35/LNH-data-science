@@ -1,3 +1,7 @@
+from pathlib import Path
+import os
+import pandas as pd
+
 def game_to_pandas(game: dict,
                    export: bool | None = None):
     """Extraire la liste d'événements d'une seule partie en dataframe pandas."""
@@ -35,12 +39,16 @@ def game_to_pandas(game: dict,
         "details.shotType": "shot_type",
         "details.shootingPlayerId": "shooter_id",
         "details.scoringPlayerId": "scorer_id",
-        "details.goalieInNetId": "goalie_id"
+        "details.goalieInNetId": "goalie_id",
+        "details.zoneCode": "zone",
     }
 
     # Reordonner et renommer les colonnes
     shots = shots.reindex(columns=list(column_names)).rename(columns=column_names)
 
+    # Saison: ce sont les 4 premiers carateres de "game_id"
+    shots["season"] = shots["game_id"].apply(lambda df: str(df)[:4])
+    
     # Noms des équipes
     team_names = {
         game["awayTeam"]["id"]: game["awayTeam"]["abbrev"],
@@ -128,10 +136,10 @@ def game_to_pandas(game: dict,
     shots = shots.convert_dtypes()
 
     # Remise en ordre
-    column_order = ['game_id', 'event_id', 'game_type', 'period', 'period_type',
+    column_order = ['season', 'game_id', 'event_id', 'game_type', 'period', 'period_type',
                     'time_in_period', 'team', 'team_id', 'event_type', 'is_goal',
-                    'x', 'y', 'player_name', 'goalie_name', 'shot_type', 'empty_net',
-                    'strength']
+                    'x', 'y', 'player_name', 'goalie_name', 'shot_type', 'zone',
+                    'empty_net', 'strength']
     shots = shots[column_order]
 
     if export:
@@ -145,7 +153,7 @@ def season_to_pandas(season: int,
 
     # Si data_dir non defini, on prend $NHL_DATA_DIR par defaut
     if data_dir is None: data_dir = os.environ['NHL_DATA_DIR']
-    
+
     season_list = load_season(season, data_dir=data_dir) + load_season(season, "playoffs", data_dir=data_dir)
 
     # Liste de dataframes
@@ -166,11 +174,11 @@ def season_to_pandas(season: int,
     if not dataframes:
         raise ValueError("Aucune partie trouvée.")
 
-    
+
     season_df = pd.concat(dataframes, ignore_index=True)
     if export:
         save_to_csv(season_df, filename=f"{season}_shots")
-    
+
     # Retourner le dataframe avec tous les matchs d'une saison
     return season_df
 
@@ -187,10 +195,10 @@ def save_to_csv(dataframe: pd.DataFrame,
         path = Path(path)
 
     #if overwrite is None:
-    
+
     path.mkdir(parents=True, exist_ok=True)
     csv_path = path / f"{filename}.csv"
-    
+
     if csv_path.is_file() and not overwrite:
         raise FileExistsError("Utiliser overwrite=True pour réécrire le fichier.")
 

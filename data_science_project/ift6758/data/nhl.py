@@ -149,36 +149,22 @@ def download_playoffs(
                     bar.update(1)
     return games
 
-
-def download_season(
-    season: int,
-    data_dir: str | os.PathLike | None = None,
-    session: requests.Session | None = None,
-    delay: float = 0.5,
-) -> dict[str, list[dict]]:
-    """Download (or load from cache) a full season: ``{"regular": [...], "playoffs": [...]}``."""
-    session = session or requests.Session()
+# ----------------------------------------------------------- one season
+def download_season(season: int, data_dir: str | os.PathLike | None = None) -> dict[str, list[dict]]:
+    """Download (or load from cache) one full season: ``{"regular": [...], "playoffs": [...]}``."""
+    session = requests.Session()
     return {
-        REGULAR: download_regular_season(season, data_dir, session, delay),
-        PLAYOFFS: download_playoffs(season, data_dir, session, delay),
+        REGULAR: download_regular_season(season, data_dir, session),
+        PLAYOFFS: download_playoffs(season, data_dir, session),
     }
 
-#----------------------------------------------------------- sequential
-# def download_seasons(first=2016, last=2023, data_dir=None, delay=0.5) -> None:
-#     # Download 2016-17 ... 2023-24 by default into the local cache.
-#     session = requests.Session()
-#     for season in range(first, last + 1):
-#         download_season(season, data_dir, session, delay)
-
-#----------------------------------------------------------- parallel
-from concurrent.futures import ThreadPoolExecutor
-# Download multiple seasons in parallel using threads
-def download_seasons(first=2016, last=2023, data_dir=None, delay=0.3, workers=4) -> None:
-    # Download 2016-17 ... 2023-24 by default into the local cache.
-    seasons = range(first, last + 1)
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        # session=None: each season creates its own requests.Session
-        list(pool.map(lambda s: download_season(s, data_dir, None, delay), seasons))
+# ---------------------------------------------------------- multiple seasons
+def download_seasons(first=2016, last=2023, data_dir=None, delay=0.5) -> None:
+    """Download 2016-17 ... 2023-24 by default into the cache (``first``/``last`` are start years)."""
+    session = requests.Session()
+    for season in range(first, last + 1):
+        download_regular_season(season, data_dir, session, delay)
+        download_playoffs(season, data_dir, session)
 
 # ------------------------------------------------------------ offline loading
 # Useful for task 3

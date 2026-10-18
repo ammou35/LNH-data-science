@@ -1,5 +1,5 @@
-
-def game_to_pandas(game:dict):
+def game_to_pandas(game: dict,
+                   export: bool | None = None):
     """Extraire la liste d'événements d'une seule partie en dataframe pandas."""
 
     # Le workflow est principalement adapté des TPs
@@ -133,4 +133,66 @@ def game_to_pandas(game:dict):
                     'x', 'y', 'player_name', 'goalie_name', 'shot_type', 'empty_net',
                     'strength']
     shots = shots[column_order]
+
+    if export:
+        save_to_csv(shots, filename="shots")
     return shots
+
+def season_to_pandas(season: int,
+                     data_dir: str | os.PathLike | None = None,
+                     export: bool | None = None):
+    """Extraire le dataframe pandas de tous les matchs d'une saison"""
+
+    # Si data_dir non defini, on prend $NHL_DATA_DIR par defaut
+    if data_dir is None: data_dir = os.environ['NHL_DATA_DIR']
+    
+    season_list = load_season(season, data_dir=data_dir) + load_season(season, "playoffs", data_dir=data_dir)
+
+    # Liste de dataframes
+    dataframes = []
+
+    # Extraire chaque dataframe d'un match
+    for game in season_list:
+        # Claude.AI utilisé, cf annexe
+        try:
+            df = game_to_pandas(game)
+        except Exception as e:
+            print(f"Skipping game {game}: {e}")
+            continue
+
+        dataframes.append(df)
+
+    # Soulever une erreur si aucun match n'est extrait
+    if not dataframes:
+        raise ValueError("Aucune partie trouvée.")
+
+    
+    season_df = pd.concat(dataframes, ignore_index=True)
+    if export:
+        save_to_csv(season_df, filename=f"{season}_shots")
+    
+    # Retourner le dataframe avec tous les matchs d'une saison
+    return season_df
+
+def save_to_csv(dataframe: pd.DataFrame,
+                filename: str | os.PathLike,
+                path: str | os.PathLike | None = None,
+                overwrite: bool | None = None):
+    """Sauvegarde un dataframe dans un CSV. Adapté du TP."""
+
+    # Verifications des arguments
+    if path is None:
+        path = Path("ift6758/data/processed")
+    elif type(path) is str:
+        path = Path(path)
+
+    #if overwrite is None:
+    
+    path.mkdir(parents=True, exist_ok=True)
+    csv_path = path / f"{filename}.csv"
+    
+    if csv_path.is_file() and not overwrite:
+        raise FileExistsError("Utiliser overwrite=True pour réécrire le fichier.")
+
+    dataframe.to_csv(csv_path, index=False)
+    print("Saved processed table:", csv_path.resolve())

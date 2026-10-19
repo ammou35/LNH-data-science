@@ -36,6 +36,7 @@ from tqdm import tqdm
 
 PBP_URL = "https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play"
 DATA_DIR_ENV = "NHL_DATA_DIR"
+# Default data folder is now always data_science_project/data/raw. If your data is somewhere else, move it there or set NHL_DATA_DIR
 DEFAULT_DATA_DIR = "data/raw"
 
 REGULAR = "regular"
@@ -192,37 +193,3 @@ def main():
     parser.add_argument("--delay", type=float, default=0.5, help="seconds between requests")
     args = parser.parse_args()
     download_seasons(args.first, args.last, args.data_dir, args.delay)
-
-
-# # step 1: fetch one game and look at it
-# import requests
-
-# url = "https://api-web.nhle.com/v1/gamecenter/2022030311/play-by-play"
-# resp = requests.get(url, timeout=30)
-# print(resp.status_code)
-# data = resp.json()
-# print(data.keys())
-
-# # step 2: save it to disk
-# import json
-# from pathlib import Path
-
-# path = Path("data/raw/2022030311.json")
-# path.parent.mkdir(parents=True, exist_ok=True)
-# path.write_text(json.dumps(data))
-
-
-# # step 3: add the cache check, which is the heart of this task
-# def get_game(game_id):
-#     path = Path(f"data/raw/{game_id}.json")
-#     if path.exists():
-#         return json.loads(path.read_text())
-#     url = f"https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play"
-#     resp = requests.get(url, timeout=30)
-#     if resp.status_code == 404:
-#         return None
-#     resp.raise_for_status()
-#     data = resp.json()
-#     path.parent.mkdir(parents=True, exist_ok=True)
-#     path.write_text(json.dumps(data))
-#     return data

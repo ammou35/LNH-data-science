@@ -139,7 +139,7 @@ def game_to_pandas(game: dict,
 
     # Remise en ordre
     column_order = ['season', 'game_id', 'event_id', 'game_type', 'period', 'period_type',
-                    'time_in_period', 'team', 'team_id', 'event_type', 'is_goal',
+                    'time_in_period', 'team', 'team_id', 'home_team', 'event_type', 'is_goal',
                     'x', 'y', 'player_name', 'goalie_name', 'shot_type', 'zone',
                     'empty_net', 'strength']
     shots = shots[column_order]

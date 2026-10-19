@@ -50,7 +50,7 @@ def game_to_pandas(game: dict,
 
     # Saison: ce sont les 4 premiers carateres de "game_id"
     shots["season"] = shots["game_id"].apply(lambda df: str(df)[:4])
-    
+
     # Noms des équipes
     team_names = {
         game["awayTeam"]["id"]: game["awayTeam"]["abbrev"],
@@ -65,8 +65,7 @@ def game_to_pandas(game: dict,
     shots["empty_net"] = shots["goalie_id"].isna()
 
     # Pour déterminer qui est en avantage numérique ou non a partir du situationCode, il faut savoir qui est l'équipe a domicile
-    home_team = game["homeTeam"]["id"]
-
+    shots["is_home_team"] = (shots["team_id"] == game["homeTeam"]["id"])
     # Convertir en dtypes supportant les valeurs manquantes
     shots = shots.convert_dtypes()
 
@@ -125,13 +124,11 @@ def game_to_pandas(game: dict,
                 map(int, list(df))))
             )))
 
-    # Avantage numérique si (#home_goalie_in_net + #home_skaters) - (#away_goalie_in_net + #away_skaters) > 0 et événement de home_team
-    situations['strength'] = (
-        ((situations['home_goalie_in_net']+situations['home_skaters']) - (situations['away_goalie_in_net']+situations['away_skaters']))
-        *((shots["team_id"] == home_team).map({True: 1, False: -1})))
+    # Avantage numérique si #home_skaters - #away_skaters > 0 et événement de home_team
+    situations['strength'] = (situations['home_skaters'] - situations['away_skaters']) * (shots["is_home_team"]*2 - 1)
 
     # Fusion des tables shots et situation_df
-    shots = shots.merge(situations['strength'], how='left', left_index=True, right_index=True)
+    shots = shots.merge(situations, how='left', left_index=True, right_index=True)
 
 
     # Convertir en valeurs manquantes
@@ -139,9 +136,9 @@ def game_to_pandas(game: dict,
 
     # Remise en ordre
     column_order = ['season', 'game_id', 'event_id', 'game_type', 'period', 'period_type',
-                    'time_in_period', 'team', 'team_id', 'home_team', 'event_type', 'is_goal',
+                    'time_in_period', 'team', 'team_id', 'is_home_team', 'event_type', 'is_goal',
                     'x', 'y', 'player_name', 'goalie_name', 'shot_type', 'zone',
-                    'empty_net', 'strength']
+                    'empty_net', 'away_goalie_in_net', 'away_skaters', 'home_skaters', 'home_goalie_in_net','strength']
     shots = shots[column_order]
 
     if export:

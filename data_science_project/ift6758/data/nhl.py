@@ -36,8 +36,9 @@ from tqdm import tqdm
 
 PBP_URL = "https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play"
 DATA_DIR_ENV = "NHL_DATA_DIR"
-# Default data folder is now always data_science_project/data/raw. If your data is somewhere else, move it there or set NHL_DATA_DIR
-DEFAULT_DATA_DIR = "data/raw"
+# Default data folder is now always data_science_project/ift6758/data/raw. 
+# If your data is somewhere else, move it there or set NHL_DATA_DIR
+DEFAULT_DATA_DIR = "/ift6758/data/raw"
 
 REGULAR = "regular"
 PLAYOFFS = "playoffs"

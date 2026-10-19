@@ -142,5 +142,7 @@ dmypy.json
 .ruff_cache/
 
 # Project-specific: raw NHL data and secrets never go in git
-data/raw/*
-!data/raw/.gitkeep
+ift6758/data/raw/*
+!ift6758/data/raw/.gitkeep
+ift6758/data/processed/*
+!ift6758/data/processed/.gitkeep

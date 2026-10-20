@@ -82,4 +82,4 @@ To check that everything works (the first run downloads ~8 GB of weights to the 
 
 The suggested environment is a Colab T4 GPU.
 Colab notebooks run in Colab's own Python environment rather than uv.
-[`notebooks/LLM setup.ipynb`](./notebooks/LLM%20setup.ipynb) installs the same package versions as `uv.lock` on Colab, clones your repository, and loads the model; use it as a starting point for your LLM notebooks.
+[`notebooks/1.2_LLM.ipynb`](./notebooks/LLM%20setup.ipynb) installs the same package versions as `uv.lock` on Colab, clones your repository, and loads the model; use it as a starting point for your LLM notebooks.

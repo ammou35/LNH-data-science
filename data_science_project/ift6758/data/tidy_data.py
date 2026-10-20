@@ -192,11 +192,9 @@ def save_to_csv(dataframe: pd.DataFrame,
 
     # Verifications des arguments
     if path is None:
-        path = Path("ift6758/data/processed")
-    elif type(path) is str:
+        path = Path(__file__).resolve().parent / "processed"
+    else:
         path = Path(path)
-
-    #if overwrite is None:
 
     path.mkdir(parents=True, exist_ok=True)
     csv_path = path / f"{filename}.csv"

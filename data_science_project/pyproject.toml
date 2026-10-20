@@ -23,12 +23,17 @@ download-nhl = "ift6758.data.nhl:main"
 
 [project.optional-dependencies]
 # Dependencies for running Qwen3-4B-Instruct-2507 (see ift6758/llm/qwen.py).
-# Install with `uv sync --extra llm`. Keep notebooks/LLM setup.ipynb pinned to the same versions.
+# Install with `uv sync --extra llm --extra rag`. Keep notebooks/1.2_LLM.ipynb pinned to the same versions.
 llm = [
     "accelerate>=1,<2",
     "bitsandbytes>=0.45,<1",
     "torch>=2.6",
     "transformers>=4.56",
+]
+rag = [
+    "faiss-cpu>=1.15.1",
+    "langchain-text-splitters>=1.1.3",
+    "sentence-transformers>=6.1.0",
 ]
 
 [dependency-groups]

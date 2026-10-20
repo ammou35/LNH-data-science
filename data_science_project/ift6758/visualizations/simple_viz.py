@@ -57,14 +57,13 @@ def compute_distance(df):
     Input: dataframe
     Output: nouveau dataframe avec df["distance"] = [les distances pour chaque événement]"""
     # Ajouter la valeur 0
-    distances = [0]
+    distances = []
 
     # Convertir les valeurs manquantes du dataframe en NaN
     dist_df = df.convert_dtypes()
 
     # Boucle pour 
-    for i in range(1, len(dist_df)):
-        # Ajouter la clé 0
+    for i in range(len(dist_df)):
             try:
                 x = dist_df["x"].iloc[i]
                 y = dist_df["y"].iloc[i]

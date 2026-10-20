@@ -36,9 +36,9 @@ from tqdm import tqdm
 
 PBP_URL = "https://api-web.nhle.com/v1/gamecenter/{game_id}/play-by-play"
 DATA_DIR_ENV = "NHL_DATA_DIR"
-# Default data folder is now always data_science_project/ift6758/data/raw. 
+# Default data folder is now always data_science_project/ift6758/data/raw.
 # If your data is somewhere else, move it there or set NHL_DATA_DIR
-DEFAULT_DATA_DIR = "/ift6758/data/raw"
+DEFAULT_DATA_DIR = Path(__file__).resolve().parent / "raw" # Reproductibilité du chemin vers les données : voir annexe (Amira 1)
 
 REGULAR = "regular"
 PLAYOFFS = "playoffs"
@@ -66,7 +66,7 @@ def playoff_game_id(season: int, round_: int, matchup: int, game: int) -> str:
 # Returns a Path object and creates one if it does not exist.
 def get_data_dir(data_dir: str | os.PathLike | None = None) -> Path:
     """Cache root: explicit argument > ``$NHL_DATA_DIR`` > ``./data/raw``."""
-    path = Path(data_dir or os.environ.get(DATA_DIR_ENV, DEFAULT_DATA_DIR))
+    path = Path(data_dir) if data_dir is not None else DEFAULT_DATA_DIR # Voir annexe (Amira 1)
     path.mkdir(parents=True, exist_ok=True)
     return path
 

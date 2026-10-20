@@ -58,6 +58,15 @@ def game_to_pandas(game: dict,
     }
     shots["team"] = shots["team_id"].map(team_names)
 
+    # Vérifier la table avant de l’utiliser
+    assert len(events) == len(plays), "Flattening changed the number of events."
+    assert len(shots) == int(keep.sum()), "Cleaning changed the number of retained events."
+    assert shots[["game_id", "event_id"]].notna().all().all(), "Missing event identifier."
+    assert not shots.duplicated(["game_id", "event_id"]).any(), "Duplicate event identifiers."
+
+    print("Checks passed.")
+    #display(shots.isna().sum().rename("missing_count").to_frame())
+
     # Indicateur de but ou non
     shots["is_goal"] = shots["event_type"].eq("goal")
 
@@ -153,7 +162,10 @@ def season_to_pandas(season: int,
     # Si data_dir non defini, on prend $NHL_DATA_DIR par defaut
     if data_dir is None: data_dir = os.environ['NHL_DATA_DIR']
 
+    print(f"Chargement des fichiers de donnees brutes de la saison {season}...")
     season_list = load_season(season, data_dir=data_dir) + load_season(season, "playoffs", data_dir=data_dir)
+    print("Chargement termine")
+    print(f"Transformation des donnees brutes en tidy data...")
 
     # Liste de dataframes
     dataframes = []
@@ -174,7 +186,11 @@ def season_to_pandas(season: int,
         raise ValueError("Aucune partie trouvée.")
 
 
+    print(f"Transformation terminee")
+    print(f"Concatenation des tidy data en un seul dataframe de la saison {season}...")
     season_df = pd.concat(dataframes, ignore_index=True)
+    print(f"Concatenation terminee")
+
     if export:
         save_to_csv(season_df, filename=f"{season}_shots")
 

@@ -104,18 +104,25 @@ def compute_shots_by_distance(df, bin_size=5):
     df_distances = compute_distance(df)[["distance", "is_goal"]]
     df_distances_dropna = df_distances.dropna()
 
+    # Utilisation de Claude AI pour diviser les données en bins, après plusieurs heures d'essais.
+    # Voir annexe Jérémie 1 pour justification
     # Ajoute la colonne distance au dataframe et retire les NaN
     bins = (df_distances_dropna["distance"].astype(int) // bin_size) * bin_size
+
+
 
     # Dictionnaire de buts et de tirs pour chaque distance
     goals = {}
     shots = {}
+
 
     #Pour chaque valeur de distance, créer une clé 0
     for key in bins:
         goals[key]= 0
         shots[key]= 0
 
+    # Dans le même prompt, utilisation de Claude AI pour diviser les données en bins, après plusieurs heures d'essais.
+    # Voir annexe Jérémie 1 pour justification.
     # Pour chaque distance, ajouter le but ou le tir
     for keys, is_goal in zip(bins, df_distances_dropna["is_goal"]):
         if is_goal:
@@ -141,6 +148,8 @@ def compute_goal_percent(distance_dataframe, bin_size, df_columns):
     goal_percent = []
 
     # Pour chaque colonne, calculer le pourcentage
+    # Claude IA utilisé pour éviter les divisions par 0 et TypeError avec missing values
+    # Voir annexe Jérémie 2 pour justification
     for j in df_columns:
         s = shots_goals[0].get(j)
         g = shots_goals[1].get(j, 0)
@@ -192,6 +201,8 @@ def create_Q1_figure(season):
     shot_count = shots_and_goals[0]
     goal_count = shots_and_goals[1]
 
+    # Claude IA utilisé pour indexer les tirs sur le bon label.
+    # Voir annexe Jérémie 3 et 3.5 pour justification.
     # Aligner les buts sur le même index que les tirs (0 si aucun but)
     goal_count = goal_count.reindex(shot_count.index, fill_value=0)
     
@@ -297,7 +308,8 @@ def create_Q3_figure(season, bin_size=15):
         figure_index.append(f"{i}")
 
         # Calculer les pourcentages de buts et l'ajouter
-        goal_percent_by_dist_type.append(compute_goal_percent(shot_types_dict[f"{i}"], bin_size=bin_size, df_columns=df_columns))
+        computed_percent = compute_goal_percent(distance_dataframe=shot_types_dict[f"{i}"], bin_size=bin_size, df_columns=df_columns)
+        goal_percent_by_dist_type.append(computed_percent)
 
     # Étiquettes de distances
     fig_labels = [f"[{i}-{i+bin_size}[" for i in df_columns]

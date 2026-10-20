@@ -154,7 +154,7 @@ def season_to_pandas(season: int,
     """Extraire le dataframe pandas de tous les matchs d'une saison"""
 
     # Si data_dir non defini, on prend $NHL_DATA_DIR par defaut
-    if data_dir is None: data_dir = os.environ['NHL_DATA_DIR']
+    if data_dir is None: data_dir = Path(__file__).resolve().parent / "raw"
 
     season_list = load_season(season, data_dir=data_dir) + load_season(season, "playoffs", data_dir=data_dir)
 

@@ -57,14 +57,13 @@ def compute_distance(df):
     Input: dataframe
     Output: nouveau dataframe avec df["distance"] = [les distances pour chaque événement]"""
     # Ajouter la valeur 0
-    distances = [0]
+    distances = []
 
     # Convertir les valeurs manquantes du dataframe en NaN
     dist_df = df.convert_dtypes()
 
     # Boucle pour 
-    for i in range(1, len(dist_df)):
-        # Ajouter la clé 0
+    for i in range(len(dist_df)):
             try:
                 x = dist_df["x"].iloc[i]
                 y = dist_df["y"].iloc[i]
@@ -104,6 +103,8 @@ def compute_shots_by_distance(df, bin_size=5):
     df_distances = compute_distance(df)[["distance", "is_goal"]]
     df_distances_dropna = df_distances.dropna()
 
+    # Utilisation de Claude AI pour diviser les données en bins, après plusieurs heures d'essais.
+    # Voir annexe Jérémie 1 pour justification
     # Ajoute la colonne distance au dataframe et retire les NaN
     bins = (df_distances_dropna["distance"].astype(int) // bin_size) * bin_size
 
@@ -141,6 +142,8 @@ def compute_goal_percent(distance_dataframe, bin_size, df_columns):
     goal_percent = []
 
     # Pour chaque colonne, calculer le pourcentage
+    # Claude IA utilisé pour éviter les divisions par 0 et TypeError avec missing values
+    # Voir annexe Jérémie 2 pour justification
     for j in df_columns:
         s = shots_goals[0].get(j)
         g = shots_goals[1].get(j, 0)

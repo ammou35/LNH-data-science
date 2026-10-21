@@ -160,7 +160,7 @@ def season_to_pandas(season: int,
     """Extraire le dataframe pandas de tous les matchs d'une saison"""
 
     # Si data_dir non defini, on prend $NHL_DATA_DIR par defaut
-    if data_dir is None: data_dir = os.environ['NHL_DATA_DIR']
+    if data_dir is None: data_dir = Path(__file__).resolve().parent / "raw"
 
     print(f"Chargement des fichiers de donnees brutes de la saison {season}...")
     season_list = load_season(season, data_dir=data_dir) + load_season(season, "playoffs", data_dir=data_dir)
@@ -205,11 +205,9 @@ def save_to_csv(dataframe: pd.DataFrame,
 
     # Verifications des arguments
     if path is None:
-        path = Path("ift6758/data/processed")
-    elif type(path) is str:
+        path = Path(__file__).resolve().parent / "processed"
+    else:
         path = Path(path)
-
-    #if overwrite is None:
 
     path.mkdir(parents=True, exist_ok=True)
     csv_path = path / f"{filename}.csv"

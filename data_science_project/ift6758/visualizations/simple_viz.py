@@ -20,7 +20,8 @@ import seaborn as sns
 from ift6758.data.tidy_data import (
     game_to_pandas,
     season_to_pandas,
-    save_to_csv
+    save_to_csv,
+    infer_attack_direction
 )
 
 DATA_DIR_ENV = "NHL_DATA_DIR"
@@ -53,43 +54,37 @@ def get_shots_and_goals(df, column: str, count: bool=False):
 # Utilisé pour create_Q2_figure, create_Q3_figure
 
 def compute_distance(df):
-    """Redonner une copie du dataframe et ajouter la colonne distance
+    """Ajouter une colonne distance au dataframe
     Input: dataframe
     Output: nouveau dataframe avec df["distance"] = [les distances pour chaque événement]"""
-    # Ajouter la valeur 0
+
     distances = []
 
-    # Convertir les valeurs manquantes du dataframe en NaN
-    dist_df = df.convert_dtypes()
+    # Convertir les valeurs manquantes du dataframe en NaN (tiré de la démo)
+    df = df.convert_dtypes()
 
-    # Boucle pour 
-    for i in range(len(dist_df)):
-            try:
-                x = dist_df["x"].iloc[i]
-                y = dist_df["y"].iloc[i]
+    # Ajouter la colonne "direction" pour savoir où l'équipe tire
+    df["attack_dir"] = infer_attack_direction(df)
 
-                # Filets à 89 et -89 pieds, y = 0
-                distance_from_net1 = np.sqrt((x+89)**2+y**2)
-                distance_from_net2 = np.sqrt((x-89)**2+y**2)
+    # Boucle pour calculer la distance du filet selon la direction de l'attaque
+    for i in range(len(df)):
 
-                # En zone défensive, le filet est celui le plus loin.
-                # En zone neutre, nous assumons que le filet est celui le plus près.
-                # Distances arrondies pour agréger tous les tirs près les uns des autres
-                if dist_df["zone"].iloc[i] == "D":
-                    distance = max(distance_from_net1, distance_from_net2)
-                else:
-                    distance = min(distance_from_net1, distance_from_net2)
-                distances.append(int(distance))
+        try:
 
-            # Si la donnée est manquante, remplir quand même et continuer
-            except (TypeError, ValueError):
-                distance = np.nan
-                distances.append(distance)
-                continue
+            x = df["x"].iloc[i]
+            y = df["y"].iloc[i]
+
+            # Filets à x=89 si df["attack_dir"] == 1 et x=-89 si df["attack_dir"] == -1
+            distance = round(np.sqrt((89-x*df["attack_dir"].iloc[i])**2+y**2))
+
+        # Si la donnée est manquante, remplir quand même et continuer
+        except (TypeError, ValueError):
+            distance = np.nan
         
+        distances.append(distance)
     
-    dist_df["distance"] = distances
-    return dist_df
+    df["distance"] = distances
+    return df
 
 #------------------------------------------------------------------------------------------------------------------------ 
 # Utilisé pour create_Q2_figure, create_Q3_figure
@@ -155,7 +150,7 @@ def compute_goal_percent(distance_dataframe, bin_size, df_columns):
    
 
     # Nombre de tirs minimal pour être considéré
-        min_shots = 10
+        min_shots = 15
 
         # Sauter les NaN, SURTOUT PAS = 0
         try:
@@ -187,13 +182,10 @@ def create_dict_by_type_w_dist(df):
 #------------------------------------------------------------------------------------------------------------------------ 
 # Figure 1
 
-def create_Q1_figure(season):
+def create_Q1_figure(season_df):
     """Créer la première figure de pourcentage et nombre de buts et de tirs sans but en fonction du type de tir
     Input: Année de début de saison, bin_size(opt)
     Output: Diagramme à bandes"""
-
-    # Extraire les données de la saison dans un dataframe
-    season_df = season_to_pandas(season)
 
     # Value_counts des tirs et des buts selon le critère "Type de tir"
     shots_and_goals = get_shots_and_goals(season_df, column="shot_type", count=True)
@@ -232,7 +224,7 @@ def create_Q1_figure(season):
     ax1.set_xticks(x+0.1, shot_count.index)
     ax1.tick_params(length=0)
     ax1.set_ylabel("# de tirs")
-    fig.suptitle(f"Tirs sans but, buts et pourcentage de buts par type de tir \nSaison {season_df['season'].iloc[0]}-{int(season_df['season'].iloc[0])+1}", y = 0.94)
+    fig.suptitle(f"Tirs sans but, buts et pourcentage de buts par type de tir \nSaison {season_df['season'].iloc[0]}-{int(season_df['season'].iloc[0])+1}", y = 0.96)
     fig.supxlabel("Type de tir", size = "medium", y=0.035)
 
     # Deuxième axe y: le pourcentage de buts
@@ -247,13 +239,10 @@ def create_Q1_figure(season):
 #------------------------------------------------------------------------------------------------------------------------ Figure 2
 # Figure 2
 
-def create_Q2_figure(season, bin_size=5):
+def create_Q2_figure(season_df, bin_size=5):
     """Figure qui représente la relation entre la distance au filet et la proportion de tirs qui sont des buts
     Input: année de début de la saison, bin_size(opt)
     Output: plot"""
-
-    # Extraire les données de la saison dans un dataframe
-    season_df = season_to_pandas(season)
     
     # Distance maximale théorique d'un joueur par rapport au filet
     max_distance = np.sqrt(189**2 + 42.5**2)
@@ -277,13 +266,10 @@ def create_Q2_figure(season, bin_size=5):
 #------------------------------------------------------------------------------------------------------------------------ Figure 3
 # Figure 3
 
-def create_Q3_figure(season, bin_size=15):
+def create_Q3_figure(season_df, bin_size=15):
     """Fonction qui crée une heatmap du pourcentage de buts selon la distance, classée par type de tir
     Input: dataframe d'une saison complète, bin_size(opt)
     Output: heatmap"""
-
-    # Extraire les données de la saison dans un dataframe
-    season_df = season_to_pandas(season)
 
     # Liste de pourcentages de buts comptés pour chaque type de tir, selon la distance
     goal_percent_by_dist_type = []

@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import pandas as pd
+import numpy as np
 
 from ift6758.data import load_season
 
@@ -204,3 +205,26 @@ def save_to_csv(dataframe: pd.DataFrame,
 
     dataframe.to_csv(csv_path, index=False)
     print("Saved processed table:", csv_path.resolve())
+
+def infer_attack_direction(dataframe, normalized=True):
+  """
+  Retourne une Series 'attack_score' qui donne la direction de l'equipe qui attaque:
+  positif quand l'equipe attaque vers la droite, negatif autrement.
+  Necessite les colonnes 'season', 'game_id', 'period', 'team_id', 'zone' et 'x'.
+  Se base sur une heuristique du nombre majoritaire de label de zone O pour une periode de jeu donnee.
+  En donnant un score de 1 au shots avec le label de zone O et et -1 aux autres, alors le signe de (x * score) donne la direction.
+  En effet, quand une equipe attaque vers la droite, la zone O est celle qui correspond a la droite de la patinoire, et vice versa.
+  """
+  
+  if normalized is True:
+    func = np.sign
+  else:
+    func = (lambda x: x)
+  
+  return (dataframe
+          .assign(zone_score=lambda df: (df['zone'] == 'O')*2 - 1,
+            attack_score=lambda df: (df['x']*df['zone_score'] > 0)*2 - 1)
+          .groupby(['season', 'game_id', 'period', 'team_id'])
+          ['attack_score'].transform('sum')
+          .transform(lambda s: func(s))
+          )

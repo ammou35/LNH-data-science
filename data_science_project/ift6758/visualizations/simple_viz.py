@@ -54,11 +54,11 @@ def get_shots_and_goals(df, column: str, count: bool=False):
 # Utilisé pour create_Q2_figure, create_Q3_figure
 
 def compute_distance(df):
-    """Ajouter une colonne distance au dataframe
-    Input: dataframe
-    Output: nouveau dataframe avec df["distance"] = [les distances pour chaque événement]"""
-
-    distances = []
+    """
+    Ajouter une colonne distance au dataframe (Appelle 'infer_attack_direction').
+    Input: dataframe avec colonnes 'x', 'y'. 
+    Output: dataframe avec colonne 'distance' = distance de l'événement par rapport au filet
+    """
 
     # Convertir les valeurs manquantes du dataframe en NaN (tiré de la démo)
     df = df.convert_dtypes()
@@ -66,24 +66,8 @@ def compute_distance(df):
     # Ajouter la colonne "direction" pour savoir où l'équipe tire
     df["attack_dir"] = infer_attack_direction(df)
 
-    # Boucle pour calculer la distance du filet selon la direction de l'attaque
-    for i in range(len(df)):
+    df = df.assign(distance=lambda df: np.sqrt((89 - df.x*df.attack_dir)**2 + df.y**2))
 
-        try:
-
-            x = df["x"].iloc[i]
-            y = df["y"].iloc[i]
-
-            # Filets à x=89 si df["attack_dir"] == 1 et x=-89 si df["attack_dir"] == -1
-            distance = round(np.sqrt((89-x*df["attack_dir"].iloc[i])**2+y**2))
-
-        # Si la donnée est manquante, remplir quand même et continuer
-        except (TypeError, ValueError):
-            distance = np.nan
-        
-        distances.append(distance)
-    
-    df["distance"] = distances
     return df
 
 #------------------------------------------------------------------------------------------------------------------------ 

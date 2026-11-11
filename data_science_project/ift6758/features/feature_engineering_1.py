@@ -5,9 +5,14 @@ import os
 import numpy as np
 
 def compute_angle(df):
-        
+    """
+    Calculer l'angle par rapport au filet selon les coordonnées x et y ainsi que la direction de l'attaque.
+    Input: Dataframe avec colonnes 'y', 'x' et 'attack_dir
+    Output: 
+    '"""
     try:
-        # Calculer l'angle en radians en utilisant la fonction arctan2, y  en valeur absolue car l'angle est symétrique à droite et à gauche du but
+        # Calculer l'angle en radians en utilisant la fonction arctan2, y  en valeur absolue car l'angle est symétrique de chaque côté du but
+        # 'attack_dir' renvoie +1 vers la droite, -1 vers la gauche, donc change le signe de x
         angle = np.rad2deg(np.arctan2(np.absolute(df["y"]), 89-df["x"]*df["attack_dir"]))
         
     # Si la donnée est manquante, remplir quand même et continuer
@@ -16,7 +21,12 @@ def compute_angle(df):
 
     return angle
 
-def tidy_game_for_engineering(game):
+def tidy_game_for_engineering(game: dict):
+    """
+    Créer un dataframe nettoyé d'une partie pour le feature engineering
+    Input: dictionnaire d'événements d'une partie
+    Output: Dataframe avec les colonnes 'distance', 'angle', 'is_goal', 'empty_net' et les rangées de tous les événements de tirs d'une partie
+    """
     # Adapté de game_to_pandas de tidy_data.py
     # Liste d'événements
     plays = game["plays"]
@@ -62,20 +72,24 @@ def tidy_game_for_engineering(game):
     shots = compute_distance(shots)
 
     # Ajouter la colonne "angle"
-    # TODO: Ajouter la colonne "angle" en utilisant les coordonnées x et y du tir    
     shots = shots.assign(angle=compute_angle(shots))
+    
     # Enfin, on vérifie qu'il ne manque aucune données pour chaque colonne
     #assert not shots.isna().sum().any()/
 
     # Garder seulement les colonnes distance, angle, is_goal, empty_net
-    #TODO ajouter colonne angle
     shots = shots.loc[:, ["distance", "angle", "is_goal", "empty_net"]]
     return shots
 
 def tidy_season_for_engineering(season : int, export=False):
-
+    """
+    Données nettoyées des événements de tous les matchs d'une saison régulière pour le feature engineering.
+    Utilise tidy_game_for_engineering.
+    Input: Année de début de la saison (int)
+    Output: Dataframe d'une saison régulière avec les colonnes 'distance', 'angle', 'is_goal', 'empty_net' et les rangées de tous les événements de tirs d'une saison
+    """
     # Adapté de season_to_pandas de tidy_data.py
-    # Télécharger et charger le raw data pour les saisons 2016-2023
+    # Télécharger et charger le raw data
     path = f"../data/raw/{season}"
     if os.path.exists(path) == False:
         download_season(season)

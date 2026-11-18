@@ -119,9 +119,9 @@ def create_feat_engineering_1_df():
 def compute_angle(df):
     """
     Calculer l'angle par rapport au filet selon les coordonnées x et y ainsi que la direction de l'attaque.
-    Input: Dataframe avec colonnes 'y', 'x' et 'attack_dir
-    Output: 
-    '"""
+    Input: Dataframe avec colonnes 'y', 'x' et 'attack_dir'
+    Output: Ajout de la colonne 'angle' avec les angles de tir
+    """
     try:
         # Calculer l'angle en radians en utilisant la fonction arctan2, y  en valeur absolue car l'angle est symétrique de chaque côté du but
         # 'attack_dir' renvoie +1 vers la droite, -1 vers la gauche, donc change le signe de x
@@ -145,6 +145,7 @@ def to_list_data_by_column(df, critere: str, data: str = "is_goal"):
 
     # Accéder aux tirs et non tirs selon le critère
     all_events = [events_false[critere], events_true[critere]]
+
     return all_events
 
 #TODO: implémenter cette fonction pour illustrer les données sur un tableau
@@ -157,7 +158,7 @@ def to_array_goalrate(df, critere: str):
 
 #TODO: ajuster les labels une fois les graphiques fonctionnels
 #TODO: implémenter la partie goalrate (bloc else)
-def graph_per_distance(df, bins, rate: bool=False):
+def graph_per_distance(df, bins, log: bool=False, rate: bool=False):
     # Accéder aux tirs et buts pour chaque distance
     if rate == False:
         x = to_list_data_by_column(df, critere="distance")
@@ -165,6 +166,7 @@ def graph_per_distance(df, bins, rate: bool=False):
         plt.title("Nombre de tirs au but par distance dans la LNH (saisons 2016-2017 à 2022-2023)")
         label=["Tir sans but", "But"]
         plt.legend()
+        
     """
     else:
         x = to_series_goalrate(df, critere="distance")
@@ -173,12 +175,12 @@ def graph_per_distance(df, bins, rate: bool=False):
         label=None
     """
 
-    plt.hist(x=x, bins=bins, stacked=True, label=label)        
+    plt.hist(x=x, bins=bins, stacked=True, label=label, log=log)        
     plt.xlabel("Distance (pi)")
     plt.show()
 
 #TODO: implémenter la partie goalrate (bloc else)
-def graph_per_angle(df, bins, rate: bool=False):
+def graph_per_angle(df, bins, log: bool=False, rate: bool=False):
     bins = 20
 
     # Accéder aux tirs et buts pour chaque distance
@@ -188,7 +190,7 @@ def graph_per_angle(df, bins, rate: bool=False):
         plt.title("Nombre de tirs au but par angle de tir dans la LNH (saisons 2016-2017 à 2022-2023)")
         label=["Tir sans but", "But"]
         plt.legend()
-        plt.hist(x=x, bins=bins, stacked=True, label=label)
+        plt.hist(x=x, bins=bins, stacked=True, label=label, log=log)
     """
     else:
         x = to_series_goalrate(df, critere="angle")
@@ -199,12 +201,12 @@ def graph_per_angle(df, bins, rate: bool=False):
     plt.xlabel("Angle (deg)")
     plt.show()
 
-def graph_emptynet_goals_per_distance(df, bins):
+def graph_emptynet_goals_per_distance(df, bins, log: bool=True):
     x = to_list_data_by_column(df[df["is_goal"]], data="empty_net", critere="distance")
 
     # Étiquettes de distances
     kwargs = dict(alpha=0.5)
-    plt.hist(histtype="stepfilled", x=x, bins=bins, label=["Gardien présent", "Filet désert"], log=True, alpha=0.75, **kwargs)
+    plt.hist(histtype="stepfilled", x=x, bins=bins, label=["Gardien présent", "Filet désert"], log=log, alpha=0.75, **kwargs)
     plt.legend()
     plt.title("Logarithme du nombre de buts en filet désert par distance dans la LNH (saisons 2016-2017 à 2022-2023)")
     plt.xlabel("Distance (pi)")

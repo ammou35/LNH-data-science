@@ -140,7 +140,7 @@ def compute_angle(df):
     return angle
 
 
-def graph_goal_counts_by_column(df, start, end, column, yscale: str="log", bins=20):
+def graph_goal_counts_by_column(df, column, start, end, yscale: str="log", bins=20, save_fig: bool=False):
     """
     Tracer l'histogramme des tirs sans buts et des buts (y) selon un critère (column)(x)
     Input: Dataframe avec la colonne, colonne, conversion en log ou non, bins
@@ -151,10 +151,11 @@ def graph_goal_counts_by_column(df, start, end, column, yscale: str="log", bins=
     graph.set(yscale=yscale, xlabel=xlabel, ylabel=f"Nombre de tirs {'(échelle log)' if yscale=='log' else ''}")
     graph.set_title(f"Nombre de buts et non-buts selon le critère '{column}' (bins = {bins})")
     plt.suptitle(f"Source des données: API officielle de la LNH (saisons {start}-{start+1} à {end}-{end+1})", x=0.08, y=0, ha="left", fontsize=10, color="gray")
-    plt.savefig(f"../../figures/{start}_{end}_counts_by_{column}.svg", format="svg")    
+    if save_fig==True:
+        plt.savefig(f"../../figures/{start}_{end}_counts_by_{column}.svg", format="svg", bbox_inches="tight")    
     plt.show()
 
-def graph_goals_per_distance_and_angle(df, start, end, bins=20):
+def graph_goals_per_distance_and_angle(df,start, end, bins=20, save_fig: bool=False):
     """
     Tracer la heatmap du nombre de tirs (colorbar) selon la distance (x) et l'angle (y)
     Input: Dataframe avec colonnes 'distance' et 'angle', bins
@@ -185,7 +186,8 @@ def graph_goals_per_distance_and_angle(df, start, end, bins=20):
     # reposition the colorbar using new x positions and y positions of the joint ax
     joint_plot.figure.axes[-1].set_position([0.86, pos_joint_ax.y0, 0.1, pos_joint_ax.height])
 
-    plt.savefig(f"../../figures/{start}_{end}_goals_dist_ang.svg", format="svg")
+    if save_fig==True:
+        plt.savefig(f"../../figures/{start}_{end}_goals_dist_ang.svg", format="svg", bbox_inches="tight")
     plt.show()
 
 def to_bins(df, column: str, bin_size=10):
@@ -199,7 +201,7 @@ def to_bins(df, column: str, bin_size=10):
     binned = pd.cut(df[column], bins=bins, labels=bin_centers, right=False)
     return binned
 
-def graph_goalrate_by_column(df, start, end, column, bin_size):
+def graph_goalrate_by_column(df, start, end, column, bin_size, save_fig: bool=False):
     """
     Tracer la courbe du taux de buts selon un critère (colonne)
     Input: Dataframe, colonne, bin_size
@@ -213,10 +215,11 @@ def graph_goalrate_by_column(df, start, end, column, bin_size):
     graph.set_title(f"Taux de buts selon le critère '{column}' (bin size = {bin_size})")
     plt.suptitle(f"Source des données: API officielle de la LNH (saisons {start}-{start+1} à {end}-{end+1})", x=0.05, y=-0.02, ha="left", fontsize=10, color="gray")
 
-    plt.savefig(f"../../figures/{start}_{end}_goalrate_by_{column}.svg", format="svg")
+    if save_fig==True:
+        plt.savefig(f"../../figures/{start}_{end}_goalrate_by_{column}.svg", format="svg", bbox_inches="tight")
     plt.show()
 
-def graph_emptynet_goals_per_distance(df, start, end, yscale: str="log", bins=20):
+def graph_emptynet_goals_per_distance(df, start, end, yscale: str="log", bins=20, save_fig: bool=False):
     """
     Tracer l'histogramme des buts en filet désert vs non désert selon la distance
     Input: Dataframe, conversion en log ou non, bins
@@ -224,22 +227,23 @@ def graph_emptynet_goals_per_distance(df, start, end, yscale: str="log", bins=20
     """
     df = df.loc[df["is_goal"]]
     graph = sns.histplot(data=df, x=df["distance"], hue="empty_net", bins=bins)
-    graph.set(yscale=yscale, xlabel="Distance (pi)".capitalize(), ylabel=f"Nombre de tirs {'(échelle log)' if yscale=='log' else ''}")
+    graph.set(yscale=yscale, xlabel="Distance (pi)", ylabel=f"Nombre de tirs {'(échelle log)' if yscale=='log' else ''}")
     graph.set_title(f"Nombre de buts en filet désert selon la distance (bins = {bins})")
     plt.suptitle(f"Source des données: API officielle de la LNH (saisons {start}-{start+1} à {end}-{end+1})", x=0.08, y=0, ha="left", fontsize=10, color="gray")
 
-    plt.savefig(f"../../figures/{start}_{end}_emptynet_dist.svg", format="svg")
+    if save_fig==True:
+        plt.savefig(f"../../figures/{start}_{end}_emptynet_dist.svg", format="svg", bbox_inches="tight")
     plt.show()
 
-def graph_all_feature_engineering_1(df, start, end, bins=20, bin_size=10):
+def graph_all_feature_engineering_1(df, start, end, bins=20, bin_size=10, save_fig: bool=False):
     """
     Tracer tous les graphiques de la section 'Feature engineering 1'
     Input: Dataframe, bins pour 4 des 6 graphiques, année de début de la première saison (ENTRÉE MANUELLE selon df utilisé), année de début de la dernière saison (ENTRÉE MANUELLE selon df utilisé), bin_size pour les courbes de taux de buts
     Output: 6 graphiques
     """
-    graph_goal_counts_by_column(df, start=start, end=end, column="distance", bins=bins)
-    graph_goal_counts_by_column(df, start=start, end=end, column="angle", bins=bins)
-    graph_goals_per_distance_and_angle(df, start=start, end=end)
-    graph_goalrate_by_column(df, column="distance", start=start, end=end, bin_size=bin_size)
-    graph_goalrate_by_column(df, column="angle", start=start, end=end, bin_size=bin_size)
-    graph_emptynet_goals_per_distance(df, start=start, end=end)
+    graph_goal_counts_by_column(df, column="distance", start=start, end=end, bins=bins, save_fig=save_fig)
+    graph_goal_counts_by_column(df, column="angle", start=start, end=end, bins=bins, save_fig=save_fig)
+    graph_goals_per_distance_and_angle(df, start=start, end=end, bins=bins, save_fig=save_fig)
+    graph_goalrate_by_column(df, column="distance", start=start, end=end, bin_size=bin_size, save_fig=save_fig)
+    graph_goalrate_by_column(df, column="angle", start=start, end=end, bin_size=bin_size, save_fig=save_fig)
+    graph_emptynet_goals_per_distance(df, start=start, end=end, bins=bins, save_fig=save_fig)

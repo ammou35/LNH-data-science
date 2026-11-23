@@ -6,7 +6,8 @@ import numpy as np
 from ift6758.data import load_season
 
 def game_to_pandas(game: dict,
-                   export: bool | None = None):
+                   export: bool | None = None,
+                   verbose: bool = False):
     """Extraire la liste d'événements d'une seule partie en dataframe pandas."""
 
     # Le workflow est principalement adapté des TPs
@@ -35,6 +36,7 @@ def game_to_pandas(game: dict,
         "periodDescriptor.periodType": "period_type",
         "timeInPeriod": "time_in_period",
         "situationCode": "situation",
+        "homeTeamDefendingSide": "home_team_defending_side",
         "typeDescKey": "event_type",
         "details.eventOwnerTeamId": "team_id",
         "details.xCoord": "x",
@@ -51,13 +53,23 @@ def game_to_pandas(game: dict,
 
     # Saison: ce sont les 4 premiers carateres de "game_id"
     shots["season"] = shots["game_id"].apply(lambda df: str(df)[:4])
-    
+
     # Noms des équipes
     team_names = {
         game["awayTeam"]["id"]: game["awayTeam"]["abbrev"],
         game["homeTeam"]["id"]: game["homeTeam"]["abbrev"],
     }
     shots["team"] = shots["team_id"].map(team_names)
+
+    # Vérifier la table avant de l’utiliser
+    assert len(events) == len(plays), "Flattening changed the number of events."
+    assert len(shots) == int(keep.sum()), "Cleaning changed the number of retained events."
+    assert shots[["game_id", "event_id"]].notna().all().all(), "Missing event identifier."
+    assert not shots.duplicated(["game_id", "event_id"]).any(), "Duplicate event identifiers."
+
+    if verbose:
+        print("Checks passed.")
+    #display(shots.isna().sum().rename("missing_count").to_frame())
 
     # Indicateur de but ou non
     shots["is_goal"] = shots["event_type"].eq("goal")
@@ -66,7 +78,7 @@ def game_to_pandas(game: dict,
     shots["empty_net"] = shots["goalie_id"].isna()
 
     # Pour déterminer qui est en avantage numérique ou non a partir du situationCode, il faut savoir qui est l'équipe a domicile
-    home_team = game["homeTeam"]["id"]
+    shots["is_home_team"] = (shots["team_id"] == game["homeTeam"]["id"])
 
     # Convertir en dtypes supportant les valeurs manquantes
     shots = shots.convert_dtypes()
@@ -126,13 +138,11 @@ def game_to_pandas(game: dict,
                 map(int, list(df))))
             )))
 
-    # Avantage numérique si (#home_goalie_in_net + #home_skaters) - (#away_goalie_in_net + #away_skaters) > 0 et événement de home_team
-    situations['strength'] = (
-        ((situations['home_goalie_in_net']+situations['home_skaters']) - (situations['away_goalie_in_net']+situations['away_skaters']))
-        *((shots["team_id"] == home_team).map({True: 1, False: -1})))
+    # Avantage numérique si #home_skaters - #away_skaters > 0 et événement de home_team
+    situations['strength'] = (situations['home_skaters'] - situations['away_skaters']) * (shots["is_home_team"]*2 - 1)
 
     # Fusion des tables shots et situation_df
-    shots = shots.merge(situations['strength'], how='left', left_index=True, right_index=True)
+    shots = shots.merge(situations, how='left', left_index=True, right_index=True)
 
 
     # Convertir en valeurs manquantes
@@ -140,9 +150,10 @@ def game_to_pandas(game: dict,
 
     # Remise en ordre
     column_order = ['season', 'game_id', 'event_id', 'game_type', 'period', 'period_type',
-                    'time_in_period', 'team', 'team_id', 'event_type', 'is_goal',
-                    'x', 'y', 'player_name', 'goalie_name', 'shot_type', 'zone',
-                    'empty_net', 'strength']
+                    'time_in_period', 'team', 'team_id', 'is_home_team', 'home_team_defending_side',
+                    'event_type', 'is_goal', 'x', 'y', 'shot_type', 'player_name', 'goalie_name',
+                    'zone', 'empty_net', 'away_goalie_in_net', 'away_skaters', 'home_skaters',
+                    'home_goalie_in_net', 'strength']
     shots = shots[column_order]
 
     if export:
@@ -151,13 +162,19 @@ def game_to_pandas(game: dict,
 
 def season_to_pandas(season: int,
                      data_dir: str | os.PathLike | None = None,
-                     export: bool | None = None):
+                     export: bool | None = None,
+                     verbose: bool = False):
     """Extraire le dataframe pandas de tous les matchs d'une saison"""
 
     # Si data_dir non defini, on prend $NHL_DATA_DIR par defaut
     if data_dir is None: data_dir = Path(__file__).resolve().parent / "raw"
 
+    if verbose:
+        print(f"Chargement des fichiers de donnees brutes de la saison {season}...")
     season_list = load_season(season, data_dir=data_dir) + load_season(season, "playoffs", data_dir=data_dir)
+    if verbose:
+        print("Chargement termine")
+        print(f"Transformation des donnees brutes en tidy data...")
 
     # Liste de dataframes
     dataframes = []
@@ -178,7 +195,13 @@ def season_to_pandas(season: int,
         raise ValueError("Aucune partie trouvée.")
 
 
+    if verbose:
+        print(f"Transformation terminee")
+        print(f"Concatenation des tidy data en un seul dataframe de la saison {season}...")
     season_df = pd.concat(dataframes, ignore_index=True)
+    if verbose:
+        print(f"Concatenation terminee")
+
     if export:
         save_to_csv(season_df, filename=f"{season}_shots")
 
@@ -206,25 +229,42 @@ def save_to_csv(dataframe: pd.DataFrame,
     dataframe.to_csv(csv_path, index=False)
     print("Saved processed table:", csv_path.resolve())
 
-def infer_attack_direction(dataframe, normalized=True):
-  """
-  Retourne une Series 'attack_score' qui donne la direction de l'equipe qui attaque:
-  positif quand l'equipe attaque vers la droite, negatif autrement.
-  Necessite les colonnes 'season', 'game_id', 'period', 'team_id', 'zone' et 'x'.
-  Se base sur une heuristique du nombre majoritaire de label de zone O pour une periode de jeu donnee.
-  En donnant un score de 1 au shots avec le label de zone O et et -1 aux autres, alors le signe de (x * score) donne la direction.
-  En effet, quand une equipe attaque vers la droite, la zone O est celle qui correspond a la droite de la patinoire, et vice versa.
-  """
-  
-  if normalized is True:
-    func = np.sign
-  else:
-    func = (lambda x: x)
-  
-  return (dataframe
-          .assign(zone_score=lambda df: (df['zone'] == 'O')*2 - 1,
-            attack_score=lambda df: (df['x']*df['zone_score'] > 0)*2 - 1)
-          .groupby(['season', 'game_id', 'period', 'team_id'])
-          ['attack_score'].transform('sum')
-          .transform(lambda s: func(s))
-          )
+def infer_attack_direction(shots_df):
+    """Se base sur une heuristique du nombre majoritaire de certaines combinaisons
+    des valeurs de zone (O ou D), du signe de x (positif ou negatif), de la
+    parite de periode de jeu (impaire ou paire) et si l'equipe qui effectue le
+    est a domicile (pour donner une convention de direction).
+
+    En donnant un score de 1 aux shots avec le label de zone O, -1 aux shots de
+    la zone D, et 0 aux shots de la zone N, alors le signe de (x * zone_score)
+    donne la direction de l'equipe a domicile en periode impaire.
+    En effet, quand une equipe attaque vers la droite, la zone O est celle qui
+    correspond a la droite de la patinoire (i.e. x > 0), et vice versa.
+
+    Parametres:
+        shots_df: DataFrame Pandas; necessite les colonnes 'game_id', 'team_id',
+        'is_home_team', 'period', 'zone', et 'x'.
+
+    Retourne:
+        Series qui contient une colonne 'attack_dir' qui donne la direction
+        de l'equipe qui attaque.
+    """
+
+    # Lookup table home team starting attack direction
+    lut_htsad = (
+        shots_df[['game_id', 'team_id', 'is_home_team', 'period', 'zone', 'x']]
+        .assign(zone_score=lambda df: df.zone.map(zone_score_map),
+                htsad_score=lambda df: np.sign(df.x*df.zone_score
+                                                *((df.period%2 == 1)*2 - 1)
+                                                *((df.is_home_team == True)*2 - 1))
+                )
+        [['game_id', 'htsad_score']]
+        .groupby('game_id')
+        .sum().transform(np.sign).astype(int)
+    )['htsad_score'].to_dict()
+
+    return (
+        shots_df.game_id.map(lut_htsad)
+        *((shots_df.is_home_team == True)*2 - 1)
+        *((shots_df.period%2 == 1)*2 - 1)
+        )

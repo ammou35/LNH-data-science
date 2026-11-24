@@ -16,6 +16,7 @@ dependencies = [
     "lxml",
     "ipywidgets",
     "pandasai>=3.0.0",
+    "wandb",
 ]
 
 [project.scripts]

@@ -230,7 +230,15 @@ def save_to_csv(dataframe: pd.DataFrame,
     print("Saved processed table:", csv_path.resolve())
 
 def infer_attack_direction(shots_df):
-    """Se base sur une heuristique du nombre majoritaire de certaines combinaisons
+    """Infere la direction de l'equipe qui attaque:
+    positif quand l'equipe attaque vers la droite, negatif autrement.
+
+    Lorsque home_team_defending_side est present (a partir de saison 2019), on 
+    utilise cette colonne avec la colonne is_home_team pour determiner la
+    direction de l'attaque.
+    
+    Sinon:
+    Se base sur une heuristique du nombre majoritaire de certaines combinaisons
     des valeurs de zone (O ou D), du signe de x (positif ou negatif), de la
     parite de periode de jeu (impaire ou paire) et si l'equipe qui effectue le
     est a domicile (pour donner une convention de direction).
@@ -242,17 +250,30 @@ def infer_attack_direction(shots_df):
     correspond a la droite de la patinoire (i.e. x > 0), et vice versa.
 
     Parametres:
-        shots_df: DataFrame Pandas; necessite les colonnes 'game_id', 'team_id',
-        'is_home_team', 'period', 'zone', et 'x'.
+        shots_df: DataFrame Pandas; necessite les colonnes 'season', 'game_id',
+        'team_id', 'is_home_team', 'home_team_defending_side', 'period', 'zone',
+        et 'x'.
 
     Retourne:
         Series qui contient une colonne 'attack_dir' qui donne la direction
         de l'equipe qui attaque.
     """
 
+    zone_score_map = {
+        "O": 1,
+        "N": 0,
+        "D": -1,
+    }
+    
+    pre_2019 = shots_df[['season', 'game_id', 'team_id', 'is_home_team', 'home_team_defending_side', 'period', 'zone', 'x']]
+    pre_2019.season = pre_2019.season.astype(int)
+    
+    post_2019 = pre_2019.query('season >= 2019')
+    pre_2019 = pre_2019.query('season < 2019')
+    
     # Lookup table home team starting attack direction
     lut_htsad = (
-        shots_df[['game_id', 'team_id', 'is_home_team', 'period', 'zone', 'x']]
+        pre_2019
         .assign(zone_score=lambda df: df.zone.map(zone_score_map),
                 htsad_score=lambda df: np.sign(df.x*df.zone_score
                                                 *((df.period%2 == 1)*2 - 1)
@@ -263,8 +284,10 @@ def infer_attack_direction(shots_df):
         .sum().transform(np.sign).astype(int)
     )['htsad_score'].to_dict()
 
-    return (
-        shots_df.game_id.map(lut_htsad)
-        *((shots_df.is_home_team == True)*2 - 1)
-        *((shots_df.period%2 == 1)*2 - 1)
-        )
+    return pd.concat([
+        pre_2019.game_id.map(lut_htsad)
+        *((pre_2019.is_home_team == True)*2 - 1) # On flip pour reobtenir 
+        *((pre_2019.period%2 == 1)*2 - 1),       # np.sign(df.x*df.zone_score)
+
+        (post_2019.is_home_team ^ (post_2019.home_team_defending_side == "right"))*2 - 1
+        ])
